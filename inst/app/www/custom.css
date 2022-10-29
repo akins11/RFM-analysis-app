@@ -1,0 +1,14 @@
+.irs-grid-text {
+  font-family: 'arial';
+  color: black !important;
+  bottom 17px;
+  z-index: 1;
+}
+
+.irs-min, .irs-max {
+  color: black !important;
+}
+
+.irs-from, .irs-to, .irs-single {
+  color: black !important;
+}
