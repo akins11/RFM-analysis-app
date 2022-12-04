@@ -1,13 +1,3 @@
-info_button <- function(info_id) {
-  shinyWidgets::actionBttn(
-    inputId = info_id,
-    label = "",
-    icon = icon("info"),
-    style = "material-circle"
-    )
-}
-
-
 #' rfm_analysis UI Function
 #'
 #' @description A shiny Module.
@@ -22,7 +12,6 @@ mod_rfm_analysis_ui <- function(id){
   shiny::tagList(
     shinyWidgets::panel(
       shiny::fluidRow(
-        # align = "center",
         shiny::column(
           width = 3,
 
@@ -33,7 +22,7 @@ mod_rfm_analysis_ui <- function(id){
                             "K-means clustering",
                             "Manual Discretization"),
             choiceValues = c("QBD", "kmeans", "MD"),
-            selected = "kmeans",
+            selected = "QBD",
             status = "info",
             shape = "curve",
             thick = TRUE,
@@ -46,8 +35,12 @@ mod_rfm_analysis_ui <- function(id){
           width = 5,
           align = "center",
 
-          shiny::tags$h6("click & hover"),
-          shiny::uiOutput(outputId = ns("info_output"))
+          shinyWidgets::actionBttn(
+            inputId = ns("alg_info"),
+            label = "",
+            icon = icon("info"),
+            style = "material-circle"
+          )
         ),
 
         shiny::column(
@@ -148,7 +141,7 @@ mod_rfm_analysis_ui <- function(id){
           ),
 
         dropdownMenu = bs4Dash::boxDropdown(
-          bs4Dash::boxDropdownItem(shiny::markdown("A **numeric** value")),
+          bs4Dash::boxDropdownItem(qbd_value_info()),
           icon = shiny::icon("info")
         ),
 
@@ -165,7 +158,7 @@ mod_rfm_analysis_ui <- function(id){
           ),
 
         dropdownMenu = bs4Dash::boxDropdown(
-          bs4Dash::boxDropdownItem(shiny::markdown("A **numeric** value")),
+          bs4Dash::boxDropdownItem(qbd_value_info()),
           icon = shiny::icon("info")
         ),
 
@@ -182,7 +175,7 @@ mod_rfm_analysis_ui <- function(id){
           ),
 
         dropdownMenu = bs4Dash::boxDropdown(
-          bs4Dash::boxDropdownItem(shiny::markdown("A **numeric** value")),
+          bs4Dash::boxDropdownItem(qbd_value_info()),
           icon = shiny::icon("info")
         ),
 
@@ -220,14 +213,18 @@ mod_rfm_analysis_ui <- function(id){
     ),
 
     shiny::fluidRow(
-      shinyWidgets::actionBttn(
-        inputId = ns("run_analysis"),
-        label = "run",
-        style = "material-flat",
-        color = "royal",
-        size = "lg",
-        icon = shiny::icon("bolt")
+      shiny::column(
+        width = 4,
+
+        shinyWidgets::actionBttn(
+          inputId = ns("run_analysis"),
+          label = "Run",
+          style = "fill",
+          color = "royal",
+          size = "md",
+          icon = fontawesome::fa_i("fas fa-arrows-spin")
         )
+      )
     ),
 
     shiny::tags$br(),
@@ -243,20 +240,6 @@ mod_rfm_analysis_ui <- function(id){
     )
   )
 }
-
-
-
-
-info_message <- list(
-  MD = "Manual discretization incorporate all the supplied sets of RFM bin and
-        then use each set of bin to manually group the metric values respectively
-        to create each metric scores",
-  QBD = "Quantile based discretization involves getting the quantile of each RFM
-         metric values based on the value of bin supplied then group all metric
-         value that fall within each quantile together to create each RFM score.",
-  kmeans = "Clusters are created for each RFM metric using the K-means clustering
-            algorithm based on the number of centers supplied."
-)
 
 
 
@@ -327,71 +310,31 @@ mod_rfm_analysis_server <- function(id, dash_lst, parent_session){
       })
 
       # Info -----------------------------------------------------------|
-      output$info_output <- shiny::renderUI({
-        shiny::req(input$how_assign_rfm_scores)
+      shiny::observe({
 
-        if (input$how_assign_rfm_scores == "MD") {
-          shiny::tagList(info_button(session$ns("MD_info_btn")))
-        } else if (input$how_assign_rfm_scores == "QBD") {
-          shiny::tagList(info_button(session$ns("QBD_info_btn")))
+        if (input$how_assign_rfm_scores == "QBD") {
+          show_message <- info_message$QBD
+          title <- "Quantile based Discretization"
+
+        } else if (input$how_assign_rfm_scores == "MD") {
+          show_message <- info_message$MD
+          title <- "Manual Discretization"
+
         } else if (input$how_assign_rfm_scores == "kmeans") {
-          shiny::tagList(info_button(session$ns("kmeans_info_btn")))
+          show_message <- info_message$kmeans
+          title <- "K-means clustering"
         }
-      })
 
-      shiny::observe({
-        shiny::req(input$how_assign_rfm_scores)
-
-        if (!is.null(input$MD_info_btn)) {
-          if (input$MD_info_btn) {
-            bs4Dash::addPopover(
-              id = "MD_info_btn",
-               options = list(content = info_message$MD,
-                              title = "",
-                              placement = "bottom",
-                              trigger = "hover")
-              )
-          } else {
-            bs4Dash::removePopover(id = "MD_info_btn")
-          }
-        }
-      })
-      shiny::observe({
-        shiny::req(input$how_assign_rfm_scores)
-
-        if (!is.null(input$QBD_info_btn)) {
-          if (input$QBD_info_btn) {
-            bs4Dash::addPopover(
-              id = "QBD_info_btn",
-               options = list(content = info_message$QBD,
-                              title = "",
-                              placement = "bottom",
-                              trigger = "hover")
-              )
-          } else {
-            bs4Dash::removePopover(id = "QBD_info_btn")
-          }
-        }
-      })
-      shiny::observe({
-        shiny::req(input$how_assign_rfm_scores)
-
-        if (!is.null(input$kmeans_info_btn)) {
-          if (input$kmeans_info_btn) {
-            bs4Dash::addPopover(
-              id = "kmeans_info_btn",
-              options = list(content = info_message$kmeans,
-                             title = "",
-                             placement = "bottom",
-                             trigger = "hover")
-              )
-          } else {
-            bs4Dash::removePopover(id = "kmeans_info_btn")
-          }
-        }
-      })
-      # |>
-      # bindEvent(input$how_assign_rfm_scores)
+        shinyWidgets::show_toast(
+          title = title,
+          text = show_message,
+          type = "info",
+          timer = 15000,
+          position = "center",
+          width = 600
+        )
+      }) |>
+        bindEvent(input$alg_info)
 
       # MD Info --------------------------------------------------------|
       output$MD_r_bins_info <- shiny::renderUI({
@@ -440,6 +383,7 @@ mod_rfm_analysis_server <- function(id, dash_lst, parent_session){
               type = "error"
             )
           }
+
         } else if (input$how_assign_rfm_scores == "MD") {
           missing_val <- m_include_range(dash_rfm(), user_bins())
 
@@ -465,7 +409,7 @@ mod_rfm_analysis_server <- function(id, dash_lst, parent_session){
       }) |>
         shiny::bindEvent(input$run_analysis)
 
-      # Safe values ---------------------------------------------------------|
+      # valid values ---------------------------------------------------------|
       run_safe_analysis <- shiny::reactive({
         if (input$how_assign_rfm_scores == "QBD") {
           bin_length <- check_bin_length(user_bins())

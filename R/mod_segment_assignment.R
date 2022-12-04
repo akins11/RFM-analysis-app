@@ -1,9 +1,3 @@
-#seg_name_ph <- "Champions, Loyal Customers, Potential Loyalist, New Customers, Promising, Need Attention, About To Sleep, At Risk, Can't Lose Them, Lost"
-
-
-
-
-
 #' segment_assignment UI Function
 #'
 #' @description A shiny Module.
@@ -69,14 +63,17 @@ mod_segment_assignment_ui <- function(id){
     ),
 
     shiny::fluidRow(
-      shinyWidgets::actionBttn(
-        inputId = ns("create_segment"),
-        label = "assign",
-        style = "material-flat",
-        color = "royal",
-        size = "md",
-        # icon = shiny::icon("boxes")
-        icon = fontawesome::fa_i("fas fa-layer-group", verify_fa = FALSE)
+      shiny::column(
+        width = 4,
+
+        shinyWidgets::actionBttn(
+          inputId = ns("create_segment"),
+          label = "assign",
+          style = "fill",
+          color = "royal",
+          size = "md",
+          icon = fontawesome::fa_i("fas fa-layer-group", verify_fa = FALSE)
+        )
       )
     ),
 
@@ -96,27 +93,14 @@ mod_segment_assignment_ui <- function(id){
 }
 
 
-# segment_names_val <- c("Champions",
-#                        "Loyal Customers",
-#                        "Potential Loyalist",
-#                        "New Customers",
-#                        "Promising",
-#                        "Need Attention",
-#                        "About To Sleep",
-#                        "At Risk",
-#                        "Can't Lose Them",
-#                        "Lost")
-#
-# recency_val <- list(c(4, 5), c(2, 5), c(3, 5), c(4, 5), c(3, 4),
-#                     c(2, 3), c(2, 3), c(1, 2), c(1, 1), c(1, 2))
-#
-# f_m_val <- list(c(4, 5), c(3, 5), c(1, 3), c(1, 1), c(1, 1),
-#                 c(2, 3), c(1, 2), c(2, 5), c(4, 5), c(1, 2))
-
 
 
 
 #' segment_assignment Server Functions
+#'
+#' @param id
+#' @param rfm_data
+#' @param parent_session
 #'
 #' @noRd
 mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
@@ -124,6 +108,7 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
 
   moduleServer(
     id = id,
+
     module = function(input, output, session) {
       ns <- session$ns
 
@@ -144,7 +129,7 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
               shiny::textInput(
                 inputId = session$ns(paste0("segment_", .x)),
                 label = "",
-                # value = segment_names_val[.x],     ## Remove
+                value = segment_names_val[.x],     ## Remove
                 placeholder = paste("Segment", .x)
                 ),
               shiny::tags$br()
@@ -162,8 +147,8 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
               shiny::sliderInput(
                 inputId = session$ns(paste0("recency_", .x)),
                 label = "",
-                value = range_value()[["R"]][1:2],
-                # value = recency_val[[.x]],
+                # value = range_value()[["R"]][1:2],
+                value = recency_val[[.x]],
                 min  = range_value()[["R"]][1],
                 max  = range_value()[["R"]][2],
                 step = 1
@@ -182,8 +167,8 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
               shiny::sliderInput(
                 inputId = session$ns(paste0("frequency_", .x)),
                 label = "",
-                value = range_value()[["F"]][1:2],
-                # value = f_m_val[[.x]],
+                # value = range_value()[["F"]][1:2],
+                value = f_m_val[[.x]],
                 min  = range_value()[["F"]][1],
                 max  = range_value()[["F"]][2],
                 step = 1
@@ -202,8 +187,8 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
               shiny::sliderInput(
                 inputId = session$ns(paste0("monetary_", .x)),
                 label = "",
-                value = range_value()[["M"]][1:2],
-                # value = f_m_val[[.x]],
+                # value = range_value()[["M"]][1:2],
+                value = f_m_val[[.x]],
                 min  = range_value()[["M"]][1],
                 max  = range_value()[["M"]][2],
                 step = 1

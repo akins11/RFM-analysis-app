@@ -8,7 +8,7 @@ output: github_document
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/README-",
+  fig.path = "man/figures/README",
   out.width = "100%"
 )
 ```
@@ -22,37 +22,36 @@ knitr::opts_chunk$set(
 ### Introduction 
   
 RFM (Recency, Frequency, Monetary) analysis is a marketing technique or an analysis
-tool used to divide customers into various groups or clusters to identify {not just valuable customer but also customers that needs to be re-engaged}(valuable customers). RFM marketing models is proven to be an effective tool in behavior based customer segmentation which help to distinguish customers who are more likely to respond to a promotion or make a purchase.  
+tool used to separate customers into various groups or clusters to identify not just valuable customer but also customers that needs to be re-engaged. RFM marketing models is proven to be an effective tool in behavior based customer segmentation which help to distinguish customers who are more likely to respond to a promotion or make a purchase.  
 
 RFM model binds three different customer features to rank customers these are::  
-**Recency** : This is the period of time since the customer last made a purchase or a contact with the business. Customers who have made recent transactions are more valued than those who have not made a any transaction recently. The term recent of course varies from business to business, some business considers 5 days as recent e.g. retail while some consider 3-4 year as recent e.g car dealers.  
+**Recency** : This is the period of time since the customer last made a purchase or a contact with the business. Customers who have made recent transactions are rated higher than those who have not made a any transaction recently. The term recent of course varies for different business, some considers 5 days as recent e.g. retail while some consider 3-4 year as recent e.g car dealers.  
   
-**Frequency** : This attribute measure how often a customer transact with the business during a particular period of time. this shows customer level of engagement and loyalty to the business. highly frequent customers are more valuable to the business than those who are less frequent.  
+**Frequency** : This attribute measure how often a customer transact with the business during a particular period of time. One important aspect of this feature is that it shows customer level of engagement and loyalty to the business. highly frequent customers are highly rated than those who are less frequent.  
 
-**monetary** : This is the total amount of money spent by customers in purchasing products or services from the business during a particular period of time. Big spending customers generate more revenue for the business so they are considered more valuable to the business than low spenders.  
+**monetary** : This is the total amount of money spent by customers purchasing products or services during a particular period of time. Customers that spend more generate more revenue for the business so they are considered more valuable to the business than low spenders.  
 
 <br>
 
 #### Reason for the application  
-Given that it cost 5 times more to gain a new customer than to retain an existing one, it is very important for businesses to understand and nurture its existing customers. This RFM app seeks to achieve the former by automating the process involved in performing customer segmentation using RFM model. it reduces the amount of time it take to move from a raw transaction data to extracting important business insight on how to enhance customer satisfaction and ROI.  
+Given that it cost 5 times more to gain a new customer than to retain an existing one, it is very important to understand and nurture existing customers. This RFM app seeks to achieve the former by automating the process involved in performing customer segmentation using The RFM model. One important thing does is that it reduces the amount of time it take to move from a raw transaction data to extracting important business insight on how to enhance customer satisfaction and ROI.  
   
 #### Features of the application  
-The app uses the shiny application framework in r including other important libraries. it allows for different techniques which can be used in creating customers RFM scores based on a supplied scale, it also create flexibility in tuning various RFM scores to generate customer segments.  
+The app uses the shiny application framework in r including other important libraries. It allows for different techniques which can be used in creating customers RFM scores based on a supplied scale, it also create flexibility in tuning various RFM scores to generate customer segments.  
 
 <br>
 
-#### The steps the taken to move from a raw customer trasaction data to a summarised customers segment are:   
+#### The steps taken to move from a raw customer trasaction data to a summarised customers segment are as follows:   
 
 **step 1**  
 The first step involved in building an RFM model is to extract the recency,
 frequency and monetary values from the raw data for each customer, where 
   
->`Recency value` is the amount of time since the customer's most recent purchase this is accomplished by deducting the date of analysis (when the analysis is performed or the date recognized as the last day of a particular period) from each customer
-last purchase date.  
+>`Recency value` is the amount of time since a customer most recent purchase/transaction, this is accomplished by deducting the date of analysis (when the analysis is performed or the date recognized as the last day of a particular period) from each customer last purchase/transaction date.    
+    
+>`Frequency value` is the total number of transaction made by a customer during a particular period, this is carried out by adding all unique customer purchases made during the specified period. Note that there are other ways of extracting the frequency value for each customers.  
   
->`Frequency value` which is the total number of transactions made by the customer during a particular period, this is carried out by adding all unique customer purchases made during the specified period. Note that there are other ways of extracting the frequency value for each customers.  
-  
->`Monetary value`, which is the total amount spent by the customer on all purchases and it  is done by adding up all amount during the specified period.  
+>`Monetary value` is the total amount spent by the customer on all purchases and it  is done by adding up all amount during the specified period.  
  
 <br>
 
@@ -68,23 +67,23 @@ while those with a recency value of 250 days can be given a recency score of 1 a
 
 > customers with a monetary value of 700 can be given a monetary score of 5 and those with a monetary value of 10 can be given a monetary score of 1 and so on.
 
-![segment summary](/Users/AYOMIDE/Documents/R/shiny apps/rfm1/man/figures/rfm_a_analysis.png)
+![segment summary](/Users/AYOMIDE/Documents/R/shiny apps/rfm1/man/figures/README/rfm_a_analysis.png)
 
 **step 3**  
 The third step is to take each group of customers based on their RFM scores and 
-combine them into a particular segment if they are within a particular score threshold.
+combine them into a particular segment if they are within a specific score threshold.
   
 For example let create a Champion segment for the best customers, and the score threshold is, recency of 4 to 5, frequency of 4 to 5 and monetary of 4 to 5.
 when a customer have a recency score of 4, a frequency score of 5 and a monetary
 score of 5 then such customer will be in the champion segment. This will be performed for other scores and segments supplied.  
 
-![segment summary](/Users/AYOMIDE/Documents/R/shiny apps/rfm1/man/figures/rfm_a_assign_segment.png)
+![segment summary](/Users/AYOMIDE/Documents/R/shiny apps/rfm1/man/figures/README/rfm_a_assign_segment.png)
 
 <br>
 
 **step 4**  
 A brief and insightful summary of customers in each segments and how it interact with other variables in the data.  
 
-![segment summary](/Users/AYOMIDE/Documents/R/shiny apps/rfm1/man/figures/rfm_a_segment_summary.png)
+![segment summary](/Users/AYOMIDE/Documents/R/shiny apps/rfm1/man/figures/README/rfm_a_segment_summary.png)
 
 [link to the application](www.shinyio.com)

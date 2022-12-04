@@ -61,15 +61,12 @@ app_ui <- function(request) {
 
           bs4Dash::menuItem(
             text = "Run Analysis",
-            # icon = shiny::icon("th"),
             icon = fontawesome::fa_i("braille"),
             startExpanded = FALSE,
-            # flat = TRUE,
 
             bs4Dash::menuSubItem(
               text = "Analysis",
               tabName = "run_rfm_analysis",
-              # icon = shiny::icon("circle-notch")
               icon = fontawesome::fa_i("circle-notch"),
 
             ),
@@ -77,7 +74,6 @@ app_ui <- function(request) {
             bs4Dash::menuSubItem(
               text = "Summary",
               tabName = "rfm_analysis_summary",
-              # icon = shiny::icon("circle-thin")
               icon = fontawesome::fa_i("far fa-circle"),
             )
           ),
@@ -85,7 +81,6 @@ app_ui <- function(request) {
 
           bs4Dash::menuItem(
             text = "Segmentation",
-            # icon = shiny::icon("th"),
             icon = fontawesome::fa_i("braille"),
             startExpanded = FALSE,
             # flat = TRUE,
@@ -93,28 +88,24 @@ app_ui <- function(request) {
             bs4Dash::menuSubItem(
               text = "Assignment",
               tabName = "segment_assignment",
-              # icon = shiny::icon("circle-notch")
               icon = fontawesome::fa_i("circle-notch")
             ),
 
             bs4Dash::menuSubItem(
               text = "Summary",
               tabName = "segment_summary",
-              # icon = icon("circle-thin")
               icon = fontawesome::fa_i("far fa-circle")
             ),
 
             bs4Dash::menuSubItem(
               text = "Product Level",
               tabName = "product_level_summary",
-              # icon = shiny::icon("circle-thin")
               icon = fontawesome::fa_i("far fa-circle")
             ),
 
             bs4Dash::menuSubItem(
               text = "Customer Level",
               tabName = "customer_level_summary",
-              # icon = shiny::icon("circle-thin")
               icon = fontawesome::fa_i("far fa-circle"),
             )
           )
@@ -186,7 +177,7 @@ golem_add_external_resources <- function() {
   )
 
   tags$head(
-    favicon(),
+    favicon(ico = "dibcon"),
     bundle_resources(
       path = app_sys("app/www"),
       app_title = "rfm"

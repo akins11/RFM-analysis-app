@@ -1,18 +1,3 @@
-rfm_score_picker_input <- function(select_id, label, sel) {
-  shinyWidgets::pickerInput(
-    inputId = select_id,
-    label = label,
-    choices = c("Recency Score" = "recency_score",
-                "Frequency Score" = "frequency_score",
-                "Monetary Score" = "monetary_score"),
-    selected = sel,
-    options = shinyWidgets::pickerOptions(title = "Nothing Selected",
-                                          style = "btn-default")
-    )
-}
-
-
-
 #' rfm_analysis_summary UI Function
 #'
 #' @description A shiny Module.
@@ -22,21 +7,21 @@ rfm_score_picker_input <- function(select_id, label, sel) {
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-mod_rfm_analysis_summary_ui <- function(id){
-  ns <- NS(id)
+mod_rfm_analysis_summary_ui <- function(id) {
+  ns <- shiny::NS(id)
 
   shiny::tagList(
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("rfm_score_hm")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("rfm_score_hm")) |>
+          ui_spinner(),
 
         sidebar = bs4Dash::boxSidebar(
           id = ns("rfm_score_count_sidebar"),
           startOpen = FALSE,
           width = 25,
           background = box_sidebar_bg,
-          icon = fontawesome::fa_i("fas fa-cogs"),
+          icon = fontawesome::fa_i("fas fa-angles-left"),
 
           rfm_score_picker_input(ns("x_variable"), "X variable", "recency_score"),
 
@@ -53,15 +38,15 @@ mod_rfm_analysis_summary_ui <- function(id){
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("rfm_amount_hm")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("rfm_amount_hm")) |>
+          ui_spinner(),
 
         sidebar = bs4Dash::boxSidebar(
           id = ns("rfm_score_amount_sidebar"),
           startOpen = FALSE,
           width = 25,
           background = box_sidebar_bg,
-          icon = fontawesome::fa_i("fas fa-cogs"),
+          icon = fontawesome::fa_i("fas fa-angles-left"),
 
           shinyWidgets::prettyRadioButtons(
             inputId = ns("rfm_amount_agg_fun"),
@@ -86,7 +71,7 @@ mod_rfm_analysis_summary_ui <- function(id){
     shiny::fluidRow(
       bs4Dash::box(
         reactable::reactableOutput(outputId = ns("score_count_table")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+          ui_spinner(),
 
         width = 12
       )
@@ -94,15 +79,15 @@ mod_rfm_analysis_summary_ui <- function(id){
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("score_count_plot")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("score_count_plot")) |>
+          ui_spinner(),
 
         sidebar = bs4Dash::boxSidebar(
           id = ns("score_count_plot_sidebar"),
           startOpen = FALSE,
           width = 25,
           background = box_sidebar_bg,
-          icon = fontawesome::fa_i("fas fa-cogs"),
+          icon = fontawesome::fa_i("fas fa-angles-left"),
 
           shiny::numericInput(inputId = ns("n_rfm_scores"), label = "Top",
                               min = 5, max = 20, step = 1, value = 15),
@@ -155,14 +140,13 @@ mod_rfm_analysis_summary_server <- function(id, rfm_data, parent_session) {
     ns <- session$ns
 
     # Score Heat map ----------------------------------------------|
-    output$rfm_score_hm <- plotly::renderPlotly({
+    output$rfm_score_hm <- echarts4r::renderEcharts4r({
       shiny::req(rfm_data(), input$x_variable, input$y_variable)
 
       if (input$x_variable != input$y_variable) {
         score_count(dt = rfm_data(),
                     x_var = input$x_variable,
-                    y_var = input$y_variable,
-                    interactive = TRUE)
+                    y_var = input$y_variable)
       } else {
         duplicate_val <- clean_label(input$x_variable)
 
@@ -175,12 +159,11 @@ mod_rfm_analysis_summary_server <- function(id, rfm_data, parent_session) {
     })
 
     # Sales amount and rfm score ----------------------------------|
-    output$rfm_amount_hm <- plotly::renderPlotly({
+    output$rfm_amount_hm <- echarts4r::renderEcharts4r({
       shiny::req(rfm_data(),  input$rfm_amount_agg_fun)
 
       scores_amount_heatmap(dt = rfm_data(),
-                            agg_fun = input$rfm_amount_agg_fun,
-                            interactive = TRUE)
+                            agg_fun = input$rfm_amount_agg_fun)
     })
 
 
@@ -202,7 +185,7 @@ mod_rfm_analysis_summary_server <- function(id, rfm_data, parent_session) {
     }) |>
       shiny::bindEvent(input$restore)
 
-    output$score_count_plot <- plotly::renderPlotly({
+    output$score_count_plot <- echarts4r::renderEcharts4r({
       shiny::req(rfm_data(), input$n_rfm_scores, input$score_count_plot_sort)
 
       shinyWidgets::execute_safely(
@@ -218,8 +201,3 @@ mod_rfm_analysis_summary_server <- function(id, rfm_data, parent_session) {
   )
 }
 
-## To be copied in the UI
-# mod_rfm_analysis_summary_ui("rfm_analysis_summary_1")
-
-## To be copied in the server
-# mod_rfm_analysis_summary_server("rfm_analysis_summary_1")

@@ -1,34 +1,3 @@
-top_bottom_sidebar <- function(sidebar_id,
-                               numeric_id,
-                               numeric_label,
-                               select_id) {
-  bs4Dash::boxSidebar(
-    id = sidebar_id,
-    startOpen = FALSE,
-    width = 30,
-    background = box_sidebar_bg,
-    icon = fontawesome::fa_i("fas fa-cogs", verify_fa = FALSE),
-
-    shinyWidgets::numericInputIcon(
-      inputId = numeric_id,
-      label = numeric_label,
-      min = 5, max = 20, value = 10, step = 1),
-
-    shiny::tags$br(),
-
-    shinyWidgets::pickerInput(
-      inputId = select_id,
-      label = "Aggregate Function",
-      choices = c("Minimum" = "min", "Average" = "mean",
-                  "Median" = "median", "Maximum" = "max",
-                  "Total" = "sum"),
-      selected = "sum",
-      options = shinyWidgets::pickerOptions(style = "btn-default")
-      )
-  )
-}
-
-
 #' product_level UI Function
 #'
 #' @description A shiny Module.
@@ -78,8 +47,8 @@ mod_product_level_ui <- function(id){
 
     shiny::fluidRow(
       bs4Dash::box(
-        shiny::plotOutput(outputId = ns("top_product_plot")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("top_product_plot")) |>
+          ui_spinner(),
 
         sidebar = top_bottom_sidebar(ns("t_product_sidebar"), ns("top_numeric"),
                                      "Top", ns("top_agg_fun")),
@@ -89,8 +58,8 @@ mod_product_level_ui <- function(id){
 
 
       bs4Dash::box(
-        shiny::plotOutput(outputId = ns("bottom_product_plot")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("bottom_product_plot")) |>
+          ui_spinner(),
 
         sidebar = top_bottom_sidebar(ns("b_product_sidebar"), ns("bottom_numeric"),
                                      "Bottom", ns("bottom_agg_fun")),
@@ -103,15 +72,29 @@ mod_product_level_ui <- function(id){
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("min_max_plot")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+
+        shiny::fluidRow(
+          shiny::column(
+            width = 6,
+
+            echarts4r::echarts4rOutput(outputId = ns("min_plot")) |>
+              ui_spinner()
+          ),
+
+          shiny::column(
+            width = 6,
+
+            echarts4r::echarts4rOutput(outputId = ns("max_plot")) |>
+              ui_spinner()
+          )
+        ),
 
         sidebar = bs4Dash::boxSidebar(
           id = "min_max_sidebar",
           startOpen = FALSE,
           width = 25,
           background = box_sidebar_bg,
-          icon = fontawesome::fa_i("fas fa-cogs", verify_fa = FALSE),
+          icon = fontawesome::fa_i("fas fa-angles-left", verify_fa = FALSE),
 
           shiny::numericInput(
             inputId = ns("min_max_numeric"),
@@ -129,7 +112,9 @@ mod_product_level_ui <- function(id){
 
           )
         ),
-        width = 12
+
+        width = 12,
+        title = shiny::textOutput(outputId = ns("min_max_title"))
       )
     ),
 
@@ -157,11 +142,13 @@ mod_product_level_ui <- function(id){
 #'
 #' @noRd
 mod_product_level_server <- function(id, dash_lst, seg_data, parent_session) {
+
   stopifnot(shiny::is.reactive(seg_data))
   stopifnot(shiny::is.reactive(dash_lst))
 
   shiny::moduleServer(
     id = id,
+
     module = function(input, output, session) {
       ns <- session$ns
 
@@ -198,7 +185,7 @@ mod_product_level_server <- function(id, dash_lst, seg_data, parent_session) {
       })
 
       # Top Products ------------------------------------------------------|
-      output$top_product_plot <- shiny::renderPlot({
+      output$top_product_plot <- echarts4r::renderEcharts4r({
         shiny::req(prod_data(),
                    input$prod_level_select_segment,
                    input$top_agg_fun,
@@ -207,14 +194,14 @@ mod_product_level_server <- function(id, dash_lst, seg_data, parent_session) {
 
         product_by_segment(dt = prod_data(),
                            agg_fun = input$top_agg_fun,
-                           direction = "top",
+                           position = "top",
                            n_categories = input$top_numeric,
                            by = input$summary_by,
                            segment = input$prod_level_select_segment)
       })
 
       # Bottom Products ---------------------------------------------------|
-      output$bottom_product_plot <- shiny::renderPlot({
+      output$bottom_product_plot <- echarts4r::renderEcharts4r({
         shiny::req(prod_data(),
                    input$prod_level_select_segment,
                    input$bottom_agg_fun,
@@ -223,7 +210,7 @@ mod_product_level_server <- function(id, dash_lst, seg_data, parent_session) {
 
         product_by_segment(dt = prod_data(),
                            agg_fun = input$bottom_agg_fun,
-                           direction = "bottom",
+                           position = "bottom",
                            n_categories = input$bottom_numeric,
                            by = input$summary_by,
                            segment = input$prod_level_select_segment)
@@ -242,7 +229,31 @@ mod_product_level_server <- function(id, dash_lst, seg_data, parent_session) {
       }) |>
         shiny::bindEvent(input$min_max_default)
 
-      output$min_max_plot <- plotly::renderPlotly({
+
+      output$min_max_title <- shiny::renderText({
+        req(input$summary_by, input$prod_level_select_segment)
+
+        by <- input$summary_by
+        segment <- input$prod_level_select_segment
+        glue::glue("Minimum & Maximum {clean_label(by)} In {clean_label(segment)} Segment")
+      })
+
+      output$min_plot <- echarts4r::renderEcharts4r({
+          shiny::req(prod_data(),
+                     input$prod_level_select_segment,
+                     input$summary_by,
+                     input$min_max_numeric)
+
+        min_max_val <- ifelse(input$min_max_numeric == 0, 1, input$min_max_numeric)
+
+          min_max_summary(dt = prod_data(),
+                          by = input$summary_by,
+                          segment = input$prod_level_select_segment,
+                          n = min_max_val,
+                          max = FALSE)
+      })
+
+      output$max_plot <- echarts4r::renderEcharts4r({
         shiny::req(prod_data(),
                    input$prod_level_select_segment,
                    input$summary_by,
@@ -251,10 +262,8 @@ mod_product_level_server <- function(id, dash_lst, seg_data, parent_session) {
         min_max_val <- ifelse(input$min_max_numeric == 0, 1, input$min_max_numeric)
 
         min_max_summary(dt = prod_data(),
-                        by = input$summary_by,
-                        segment = input$prod_level_select_segment,
                         n = min_max_val,
-                        interactive = TRUE)
+                        max = TRUE)
       })
 
       # Number of Purchase ------------------------------------------------|

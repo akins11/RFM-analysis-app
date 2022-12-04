@@ -101,7 +101,7 @@ within_segment_summary <- function(dt, variable, gp_var, order_var) {
 #' @param dt data.table
 #' @param agg_fun an aggregate function. it can be any of 'min', 'max', 'mean',
 #'  'median', 'sum'
-#' @param direction 'top' or 'bottom'
+#' @param position 'top' or 'bottom'
 #' @param n_categories number of products to add to the plot.
 #' @param by the summarized variable.
 #' @param segment the name of the segment.
@@ -110,17 +110,13 @@ within_segment_summary <- function(dt, variable, gp_var, order_var) {
 #' @export
 #'
 #' @examples product_by_segment(dt, 'median', 'top', 10, 'Revenue', 'Champions')
+#'
 product_by_segment <- function(dt,
-                               agg_fun, direction, n_categories = 10,
+                               agg_fun, position, n_categories = 10,
                                by, segment) {
-  plt_title <- list(
-    tl = paste(
-      clean_label(direction), n_categories,
-      "Products From Customers In <span style = 'color:#9600FF;'>",
-      clean_label(segment), "</span> Segment"
-    ),
-    sub = paste("By", agg_label[[agg_fun]], clean_label(by))
-  )
+
+  plt_title <- glue::glue("{clean_label(position)} {n_categories} Purchased Products In `{clean_label(segment)}` Segment")
+  sub_title <- glue::glue("By {agg_label[[agg_fun]]} {clean_label(by)}")
 
   names(dt) <- tolower(names(dt))
 
@@ -132,42 +128,37 @@ product_by_segment <- function(dt,
     )
   }
 
-  if (direction == "top") {
+  if (position == "top") {
     f_dt <- head(dt, n_categories)
+    f_dt <- f_dt[order(get(agg_fun))]
 
-  } else if (direction == "bottom") {
+  } else if (position == "bottom") {
     f_dt <- tail(dt, n_categories)
+
   } else {
     stop("argument `direction` can only be either 'top' or 'bottom'")
   }
 
-  template <- ggplot2::ggplot(f_dt) +
-    ggplot2::geom_col(show.legend = FALSE) +
-    ggplot2::scale_x_continuous(labels = scales::comma_format()) +
-    ggplot2::theme_minimal() +
-    ggplot2::scale_fill_gradient2(low = heatmap$low, mid = heatmap$mid, high = heatmap$high,
-                                  midpoint = mean(f_dt[[agg_fun]])) +
-    ggplot2::theme(plot.title.position = "plot",
-                   plot.title = ggtext::element_markdown())
+  if (nrow(f_dt) <= 20) {
+    f_dt$color <- pal_pc[1:nrow(f_dt)]
 
-  if (direction == "top") {
-    template %+%
-      ggplot2::aes(x = .data[[agg_fun]],
-                   y = reorder(product, .data[[agg_fun]]),
-                   fill = .data[[agg_fun]]) +
-      ggplot2::labs(x = NULL, y = NULL,
-                    title = plt_title$tl, subtitle = plt_title$sub)
-
-  } else if (direction == "bottom") {
-    template %+%
-      ggplot2::aes(x = .data[[agg_fun]],
-                   y = reorder(product, .data[[agg_fun]], decreasing = TRUE),
-                   fill = .data[[agg_fun]]) +
-      ggplot2::labs(x = NULL, y = NULL,
-                    title = plt_title$tl, subtitle = plt_title$sub)
+  } else {
+    pal_pc <- c(pal_pc, pal_pc)
+    f_dt$color <- pal_pc[1:nrow(f_dt)]
   }
-}
 
+  f_dt |>
+    echarts4r::e_charts(x = product) |>
+    echarts4r::e_bar(serie = sum, name = "Total", legend = FALSE) |>
+    echarts4r::e_flip_coords() |>
+    echarts4r::e_add_nested("itemStyle", color) |>
+    echarts4r::e_grid(left = 140) |>
+    echarts4r::e_title(text = plt_title, subtext = sub_title,
+                       textStyle = list(fontWeight = "normal"),
+                       subtextStyle = list(fontWeight = "lighter")) |>
+    echarts4r::e_tooltip(backgroundColor = "#FAFAFA") |>
+    echarts4r::e_theme("macarons")
+}
 
 
 #' Minimum and maximum plot
@@ -176,48 +167,48 @@ product_by_segment <- function(dt,
 #' @param by the summarized variable
 #' @param segment the name of the segment.
 #' @param n number of products to add to the plot.
-#' @param interactive logical, whether to returned an interactive plot or a
-#' static plot.
+#' @param max Boolean, create a max summary if true else a minimum summary
 #'
-#' @return a ggplot object if interactive = FALSE else a plotly object.
+#' @return echarts4r htmlwidget object.
 #' @export
 #'
 #' @examples min_max_summary(dt, 'quantity', 'Champions', 10, TRUE)
-min_max_summary <- function(dt, by, segment, n, interactive = FALSE) {
-  if (all(c("min", "max", "product") %in% names(dt))) {
+#'
+min_max_summary <- function(dt, by = NULL, segment = NULL, n = 10, max = TRUE) {
 
-    data.table::setnames(
-      dt,
-      old = c("min", "max", "product"),
-      new = c("Minimum", "Maximum", "Product")
-      )
-  }
-  plt_title <- paste("Minimum & Maximum", clean_label(by), "In",
-                     clean_label(segment), "Segment")
-
-  f_plt <- dt[order(-Maximum)] |>
+  f_tbl <- dt[order(-max)] |>
     head(n) |>
-    ggplot2::ggplot() +
-    ggplot2::geom_segment(ggplot2::aes(x = Minimum, xend = Maximum,
-                                       y = Product, yend = Product),
-                          size = 3, alpha = 0.3, color = bar_color) +
-    ggplot2::geom_point(ggplot2::aes(x = Minimum, y = Product), color = "#4900FF", size = 6.5) +
-    ggplot2::geom_point(ggplot2::aes(x = Maximum, y = Product), color = "#00FFF9", size = 8.5) +
-    ggplot2::scale_x_continuous(labels = scales::comma_format()) +
-    ggplot2::labs(x = NULL, y = NULL, title = plt_title) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(plot.title.position = "plot")
+    echarts4r::e_charts(x = product)
 
-  if (interactive) {
-    plotly::ggplotly(f_plt) |>
-      plotly::config(displayModeBar = FALSE)
+  if (max) {
+    f_tbl <- f_tbl |>
+      echarts4r::e_bar(serie = max, name = "Maximum") |>
+      echarts4r::e_grid(left = "25%") |>
+      echarts4r::e_flip_coords() |>
+      echarts4r::e_y_axis(inverse = TRUE) |>
+      echarts4r::e_legend(left = 20, top = 25) |>
+      echarts4r::e_color("#9400D3")
+
   } else {
-    f_plt
+
+    f_tbl <- f_tbl |>
+      echarts4r::e_bar(serie = min, name = "Minimum") |>
+      echarts4r::e_grid(right = "25%") |>
+      echarts4r::e_flip_coords() |>
+      echarts4r::e_y_axis(position = "right", inverse = TRUE) |>
+      echarts4r::e_x_axis(inverse = TRUE) |>
+      echarts4r::e_legend(right = 20, top = 25) |>
+      echarts4r::e_color("#00FFFF")
   }
+
+  f_tbl |>
+    echarts4r::e_tooltip(backgroundColor = "#FAFAFA") |>
+    echarts4r::e_theme("macarons")
 }
 
 
-# /!\ Not Optimized using best data.table features, so slower than dplyr
+
+# /!\ Not Optimized using best data.table features, still slow
 dt_customer_top_purchase <- function(dt, n) {
   f_dt <- dt[, .(customer_id, product, revenue, quantity)]
 

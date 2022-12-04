@@ -12,8 +12,8 @@ mod_segment_summary_ui <- function(id){
   shiny::tagList(
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("segment_count_plot")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("segment_count_plot")) |>
+          ui_spinner(),
 
         width = 10,
         title = "Number Of Customers In Each Segment"
@@ -41,7 +41,7 @@ mod_segment_summary_ui <- function(id){
     shiny::fluidRow(
       bs4Dash::box(
         reactable::reactableOutput(outputId = ns("segment_count_table")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+          ui_spinner(),
 
         width = 10,
         title = "Segment & RFM Score Count"
@@ -50,30 +50,44 @@ mod_segment_summary_ui <- function(id){
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("segment_agg_rfm_plot")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("segment_agg_rfm_plot")) |>
+          ui_spinner(),
 
         width = 10,
-        title = "Aggregate Summary Of Each Segments By RFM"
+        title = shiny::textOutput(outputId = ns("segment_agg_summary_title"))
       ),
 
       shiny::column(
         width = 2,
 
         shinyWidgets::panel(
-          shinyWidgets::prettyRadioButtons(
-            inputId = ns("segment_agg_rfm_rb"),
-            label = "Aggregate Function",
-            choices = c("Minimum" = "min", "Average" = "mean",
-                        "Median" = "median", "Maximum" = "max",
-                        "Total" = "sum"),
-            selected = "sum",
-            status = "info",
-            shape = "curve",
-            thick = TRUE,
-            bigger = TRUE,
-            animation = "pulse"
-            )
+          shinyWidgets::pickerInput(inputId = ns("seg_tm_by"),
+                                    choices = c("Count" = "count",
+                                                "Recency Days" = "recency",
+                                                "Number of Transaction" = "frequency",
+                                                "Amount" = "monetary"),
+                                    selected = "monetary",
+                                    options = shinyWidgets::pickerOptions(style = "btn-default")),
+
+          shiny::div(
+            id = ns("segment_agg_rfm_rb_sh"),
+
+            shiny::br(),
+
+            shinyWidgets::prettyRadioButtons(inputId = ns("segment_agg_rfm_rb"),
+                                             label = "Aggregate Function",
+                                             choices = c("Minimum" = "min",
+                                                         "Average" = "mean",
+                                                         "Median"  = "median",
+                                                         "Maximum" = "max",
+                                                         "Total" = "sum"),
+                                             selected = "mean",
+                                             status = "info",
+                                             shape = "curve",
+                                             thick = TRUE,
+                                             bigger = TRUE,
+                                             animation = "pulse")
+          )
         )
       )
 
@@ -89,7 +103,15 @@ mod_segment_summary_ui <- function(id){
   )
 }
 
+
+
+
+
 #' segment_summary Server Functions
+#'
+#' @param id
+#' @param seg_data
+#' @param parent_session
 #'
 #' @noRd
 mod_segment_summary_server <- function(id, seg_data, parent_session) {
@@ -101,13 +123,11 @@ mod_segment_summary_server <- function(id, seg_data, parent_session) {
       ns <- session$ns
 
       # Bar Count plot -------------------------------------------------|
-      output$segment_count_plot <- plotly::renderPlotly({
+      output$segment_count_plot <- echarts4r::renderEcharts4r({
         shiny::req(seg_data(), input$sort_segment_rb)
 
         segment_count(dt = seg_data(),
-                      sort = input$sort_segment_rb,
-                      output_type = "plot",
-                      interactive = TRUE)
+                      sort = input$sort_segment_rb)
       })
 
       # Count Table ----------------------------------------------------|
@@ -120,10 +140,64 @@ mod_segment_summary_server <- function(id, seg_data, parent_session) {
       })
 
       # Aggregate Segment Summary --------------------------------------|
-      output$segment_agg_rfm_plot <- plotly::renderPlotly({
+      shiny::observe({
+        if (input$seg_tm_by == "count") {
+          shinyjs::hide(id = "segment_agg_rfm_rb_sh",
+                        anim = TRUE)
+
+        } else {
+          shinyjs::show(id = "segment_agg_rfm_rb_sh",
+                        anim = TRUE)
+        }
+      })
+
+      shiny::observe({
+        if (input$seg_tm_by %in% c("recency", "frequency")) {
+          CN <- c("Minimum" = "min",
+                  "Average" = "mean",
+                  "Median"  = "median",
+                  "Maximum" = "max")
+
+        } else { #if (input$seg_tm_by == "monetary")
+          CN <- c("Minimum" = "min",
+                  "Average" = "mean",
+                  "Median"  = "median",
+                  "Maximum" = "max",
+                  "Total" = "sum")
+        }
+
+        shinyWidgets::updatePrettyRadioButtons(session = session,
+                                               inputId = "segment_agg_rfm_rb",
+                                               choices = CN,
+                                               prettyOptions = list(selected = "mean",
+                                                                    status = "info",
+                                                                    shape = "curve",
+                                                                    thick = TRUE,
+                                                                    bigger = TRUE,
+                                                                    animation = "pulse"))
+      })
+
+
+      output$segment_agg_summary_title <-  shiny::renderText({
+        if (input$seg_tm_by != "count") {
+          agg_lab <- agg_label[[input$segment_agg_rfm_rb]]
+          rfm_lab <- list(recency = "Recent Days",
+                          frequency = "Number of Transactions",
+                          monetary = "Amount")
+
+          glue::glue("{agg_lab} {rfm_lab[[input$seg_tm_by]]} By Customer Segment")
+
+        } else {
+          "Number Of Customers In Each Segment"
+        }
+
+      })
+
+      output$segment_agg_rfm_plot <- echarts4r::renderEcharts4r({
         shiny::req(seg_data(), input$segment_agg_rfm_rb)
 
         segment_agg_treemap(dt = seg_data(),
+                            by = input$seg_tm_by,
                             agg_fun = input$segment_agg_rfm_rb,
                             round = TRUE)
       })

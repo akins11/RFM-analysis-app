@@ -107,63 +107,53 @@ assign_segment <- function (dt, segment_names = NULL,
 #' @param dt data.table
 #' @param sort logical whether to sort by segment count.
 #' @param output_type the type of output, either 'plot' or 'table'
-#' @param interactive logical, whether to returned an interactive plot or a
-#' static plot.
 #'
-#' @return if output_type = "table" a data.table, a ggplot object if
-#' interactive = FALSE else a plotly object.
+#' @return if output_type = "table" a data.table, echarts4r htmlwidget object.
 #' @export
 #'
 #' @examples segment_count(dt, TRUE, 'plot' TRUE)
-segment_count <- function(dt, sort = TRUE, output_type = "plot",
-                          interactive = FALSE) {
+#'
+segment_count <- function(dt, sort = TRUE) {
   f_dt <- data.table::copy(dt)
-  f_dt <- f_dt[, .(count = .N), keyby = .(segment)
-  ][order(-count)
-  ][,
-    `:=`(proportion = round(proportions(count)*100, 2))][]
 
-  if (output_type == "table") {
-    f_dt
-
-  } else if (output_type == "plot") {
-    template <- f_dt |>
-      ggplot2::ggplot() +
-      ggplot2::geom_col() +
-      ggplot2::geom_text(ggplot2::aes(label = paste0(proportion, "%"),
-                                      x = max(count)-1000)) +
-      ggplot2::labs(x = NULL, y = NULL) +
-      ggplot2::scale_x_continuous(labels = scales::comma_format()) +
-      ggplot2::scale_fill_gradient2(low = heatmap$low, mid = heatmap$mid, high = heatmap$high) +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(plot.title.position = "plot",
-                     legend.position = "none")
-
-    # plt_title <- "Number of Customers In Each Segment"
-
-    if (sort) {
-      f_plt <- template %+%
-        ggplot2::aes(x = count, y = reorder(segment, count), fill = count) +
-        ggplot2::labs(x = NULL, y = NULL)
-
-    } else {
-      f_plt <- template %+%
-        ggplot2::aes(x = count, y = segment, fill = count) +
-        ggplot2::scale_y_discrete(limits = rev) +
-        ggplot2::labs(x = NULL, y = NULL)
-    }
-
-    if (interactive) {
-      plotly::ggplotly(f_plt, tooltip = c("x")) |>
-        plotly::config(displayModeBar = FALSE)
-    } else{
-      f_plt
-    }
+  if (sort) {
+    f_dt <- f_dt[, .(count = .N), keyby = .(segment)
+          ][order(count)
+            ][,
+              `:=`(proportion = round(proportions(count)*100, 2))][]
 
   } else {
-    stop("argument `output_type` must be either 'table' or 'plot'")
+    f_dt <- f_dt[, .(count = .N), keyby = .(segment)
+          ][order(-segment)
+            ][,
+              `:=`(proportion = round(proportions(count)*100, 2))][]
   }
+
+  if (nrow(f_dt) <= 20) {
+    f_dt$color <- pal_pc[1:nrow(f_dt)]
+
+  } else {
+    pal_pc <- c(pal_pc, pal_pc)
+    f_dt$color <- pal_pc[1:nrow(f_dt)]
+  }
+
+  f_dt |>
+    echarts4r::e_charts(x = segment) |>
+    echarts4r::e_bar(serie = count, name = "Count", legend = FALSE, stack = "grp") |>
+    echarts4r::e_bar(serie = proportion,
+                     name = "Proportion",
+                     label = list(show = TRUE, offset = c(20, 0)),
+                     stack = "grp",
+                     legend = FALSE) |>
+    echarts4r::e_flip_coords() |>
+    echarts4r::e_add_nested("itemStyle", color) |>
+    echarts4r::e_tooltip(backgroundColor = "#FAFAFA") |>
+    echarts4r::e_grid(left = 125) |>
+    echarts4r::e_color(c("#00FFFF", "#FFFFFF")) |>
+    echarts4r::e_theme("macarons")
 }
+
+
 
 
 
@@ -203,11 +193,12 @@ segment_count_table <- function(dt) {
 #' 'mean', 'median'
 #' @param round logical, whether to round the summarized values.
 #'
-#' @return a plotly treemap
+#' @return a eacharts4r treemap
 #' @export
 #'
 #' @examples segment_agg_treemap(dt, 'sum', FALSE)
-segment_agg_treemap <- function(dt, agg_fun, round = TRUE) {
+#'
+segment_agg_treemap <- function(dt, by = "count", agg_fun, round = TRUE) {
   fun <- rlang::as_closure(agg_fun)
 
   if (round)  {
@@ -225,61 +216,19 @@ segment_agg_treemap <- function(dt, agg_fun, round = TRUE) {
                                    count = .N),
                                  keyby = .(segment)]
   }
-  fun_label <- agg_label[[agg_fun]]
-  f_dt[,
-       `:=`(label_txt = paste0("|", segment," |<br>",
-                               fun_label,":<br> ",
-                               "Recency | ", scales::comma(recency), "<br> ",
-                               "Frequency | ", scales::comma(frequency), "<br> ",
-                               "Monetray | ", scales::comma(monetary)))][] |>
-    plotly::plot_ly(
-      labels = ~label_txt,
-      parents = NA,
-      values = ~monetary,
-      type = "treemap",
-      hovertext = ~paste0("Segment:: ", segment, "<br>",
-                          "Number of Customers:: ", scales::comma(count)),
-      hovertemplate = "%{hovertext}<extra></extra>",
-      marker = list(colors = treemap_color)
-    ) |>
-    plotly::config(displayModeBar = FALSE)
+
+  data.table::setnames(f_dt,
+                       old = c("segment", by),
+                       new = c("name", "value"))
+
+  f_dt |>
+    echarts4r::e_charts() |>
+    echarts4r::e_treemap(itemStyle = list(emphasis = list(shadowBlur = 10))) |>
+    echarts4r::e_tooltip() |>
+    echarts4r::e_color(treemap_color)
 }
 
 
-# Not Used
-#' Segment count tree map
-#'
-#' @param dt data.table with a segment variable.
-#'
-#' @return a plotly treemap
-#' @export
-#'
-#' @examples
-segment_count_treemap <- function(dt) {
-  data.table::copy(dt)[,
-                       .(count = .N,
-                         recency = round(mean(recency_days), 2),
-                         frequency = round(mean(transaction_count), 2),
-                         monetary = round(mean(amount), 2)), keyby = .(segment)
-  ][, `:=`(proportion = round(proportions(count)*100, 2))
-  ][,
-    `:=`(label_txt = paste0("Segment | ", segment, "<br>",
-                            "Number of Customers | ", scales::comma(count),
-                            "<br>", "proportion | ", proportion, "%"))][] |>
-    plotly::plot_ly(
-      labels = ~label_txt,
-      parents = NA,
-      values = ~count,
-      type = "treemap",
-      hovertext = ~paste0("Average:<br>",
-                          "Recency: ", scales::comma(recency), "<br>",
-                          "Frequency: ", scales::comma(frequency), "<br>",
-                          "Monetary: ", scales::comma(monetary)),
-      hovertemplate = "%{hovertext}<extra></extra>",
-      marker = list(colors = treemap_color)
-    ) |>
-    plotly::config(displayModeBar = FALSE)
-}
 
 
 # Not Used

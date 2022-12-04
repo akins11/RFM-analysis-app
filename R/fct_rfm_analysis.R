@@ -6,6 +6,7 @@
 #' @export
 #'
 #' @examples get_user_bins("12, 15, 47, 18")
+#'
 get_user_bins <- function(bin) {
   f_num <- strsplit(bin, "(,)|(\\s)") |>
     unlist() |>
@@ -29,6 +30,7 @@ get_user_bins <- function(bin) {
 #' @export
 #'
 #' @examples check_within_range(dt, 'monetary' c(0.14, 50, 148, 200), 'message')
+#'
 check_within_range <- function(dt, var, bins, type = "message") {
   var_min <- min(dt[[var]])
   var_max <- max(dt[[var]])
@@ -89,6 +91,7 @@ check_within_range <- function(dt, var, bins, type = "message") {
 #' @export
 #'
 #' @examples check_include_range(dt, 'frequency' c(1, 5, 18, 36, 77), 'error')
+#'
 check_include_range <- function(dt, var, bins, type = "error") {
   var_min <- min(dt[[var]])
   var_max <- max(dt[[var]])
@@ -128,12 +131,13 @@ check_include_range <- function(dt, var, bins, type = "error") {
 #' @param df a data.table with recency, frequency & monetary variables
 #' @param bin_list a list containing values such as r, f, m
 #'
-#' @return a list containing a boolean value the name of the metric and the
+#' @return a list containing a Boolean value with the name of the metric and the
 #' error message.
 #' @export
 #'
 #' @examples m_include_range(df, list(r = c(2, 10, 35), f = c(1, 23, 45),
 #' m = c(0.14, 78, 189)))
+#'
 m_include_range <- function(df,  bin_list) {
   r_l <- check_include_range(df, "recency",  bin_list$r, "logical")
   f_l <- check_include_range(df, "frequency",  bin_list$f, "logical")
@@ -184,15 +188,18 @@ m_include_range <- function(df,  bin_list) {
 #' @export
 #'
 #' @examples bin_variable(dt, 'recency' 5, c(5, 4, 3, 2, 1))
+#'
 bin_variable <- function(dt, var, n_bins, bin_labels, rank = FALSE, fct = FALSE) {
   if (length(n_bins) > 1) {
     if (length(n_bins) != length(bin_labels)+1) {
       stop("Number of bins supplied must be greater than bin label by 1")
     }
+
     check_within_range(dt = dt, var = var, bins = n_bins, type = "message")
 
     check_include_range(dt = dt, var = var, bins = n_bins)
   }
+
   if (length(n_bins) == 1 && n_bins < 2) {
     stop("`n_bins` must be greater than or equal to 2")
   }
@@ -202,6 +209,7 @@ bin_variable <- function(dt, var, n_bins, bin_labels, rank = FALSE, fct = FALSE)
   } else {
     vect <- dt[[var]]
   }
+
   if (length(n_bins) == 1) {
     n_bins <- n_bins + 1
 
@@ -211,6 +219,7 @@ bin_variable <- function(dt, var, n_bins, bin_labels, rank = FALSE, fct = FALSE)
   } else {
     bins <- sort(n_bins, decreasing = FALSE)
   }
+
   cut_out <- cut(x = vect, breaks = bins, labels = bin_labels, include.lowest = TRUE)
 
   if (fct) cut_out else as.numeric(as.character(cut_out))
@@ -262,6 +271,7 @@ check_bin_value <- function(bin_list) {
 #' m = c(0.14, 78, 189)))
 check_unique_bins <- function(bin_list) {
   unique_len <- lapply(bin_list, \(.x) unique(.x) |> length())
+
   len <- lapply(bin_list, \(.x) length(.x))
 
   if (unique_len[[1]] != len[[1]]) {
@@ -275,11 +285,6 @@ check_unique_bins <- function(bin_list) {
   }
 }
 
-alert_metric <- list(
-  r = "Recency bins",
-  f = "Freqeuncy bins",
-  m = "Monetary bins"
-)
 
 
 
@@ -308,10 +313,12 @@ rfm_table <- function(dt,
   }
 
   f_dt <- data.table::copy(dt)
+
   f_dt <- data.table::setnames(
     f_dt,
     old = c(recency_days, n_transactions, total_revenue),
     new = c("recency_days", "transaction_count", "amount"))
+
   f_dt[, `:=`(recency_score   = NA,
               frequency_score = NA,
               monetary_score  = NA)]
@@ -322,6 +329,7 @@ rfm_table <- function(dt,
   } else {
     r_score <- rev(seq_len((length(recency_bins) - 1)))
   }
+
   f_dt$recency_score <- bin_variable(dt = f_dt,
                                      var = "recency_days",
                                      n_bins = recency_bins,
@@ -333,7 +341,9 @@ rfm_table <- function(dt,
   } else {
     f_score <- seq_len((length(frequency_bins) - 1))
   }
+
   rank_d <- ifelse(length(frequency_bins) == 1, TRUE, FALSE)
+
   f_dt$frequency_score <- bin_variable(dt = f_dt,
                                        var = "transaction_count",
                                        n_bins = frequency_bins,
@@ -346,6 +356,7 @@ rfm_table <- function(dt,
   } else {
     m_score <- seq_len((length(monetary_bins) - 1))
   }
+
   f_dt$monetary_score <- bin_variable(dt = f_dt,
                                       var = "amount",
                                       n_bins = monetary_bins,
@@ -354,7 +365,8 @@ rfm_table <- function(dt,
   # RFM_Score ----------------------------------------------------------------|
   f_dt[, `:=`(rfm = recency_score * 100 + frequency_score * 10 + monetary_score,
               transaction_count = as.numeric(transaction_count))]
-  f_dt[, `:=`(rfm_score = recency_score+frequency_score+monetary_score)]
+
+  f_dt[, `:=`(rfm_score = recency_score + frequency_score + monetary_score)]
 
   # output -------------------------------------------------------------------|
   f_dt <- f_dt[, .(customer_id, recency_days, transaction_count, amount,
@@ -369,15 +381,16 @@ rfm_table <- function(dt,
 #' Cluster RFM metric
 #'
 #' @param dt data.table
-#' @param variable either 'recency', 'frequency' or 'monetary' variable
-#' @param n_centers number of clusters
-#' @param rev logical, whether to reveres the scores
+#' @param variable either 'recency', 'frequency' or 'monetary' variable.
+#' @param n_centers number of clusters.
+#' @param rev logical, whether to reverse the scores.
 #' @param seed numeric value for analysis reproduction.
 #'
 #' @return a data.table
 #' @export
 #'
 #' @examples single_kmeans_bins(dt, 'frequency' 5)
+#'
 single_kmeans_bins <- function(dt, variable, n_centers = 5, rev = FALSE, seed = 11) {
   # fit model ----------------------------------------------------|
   set.seed(seed)
@@ -390,6 +403,7 @@ single_kmeans_bins <- function(dt, variable, n_centers = 5, rev = FALSE, seed = 
                                   .(var_name = round(mean(.SD[[1]]), 2)),
                                   keyby = .(unsorted_metric),
                                   .SDcols = variable]
+
   dt_sort <- dt_sort[order(-var_name)]
 
   if (rev) {
@@ -402,16 +416,19 @@ single_kmeans_bins <- function(dt, variable, n_centers = 5, rev = FALSE, seed = 
 
   # Merge data and drop redundant columns -------------------------|
   dt <- data.table::merge.data.table(dt, dt_sort, by = "unsorted_metric")
+
   dt[, c("unsorted_metric", "var_name") := NULL]
+
   data.table::setnames(dt,
                        old = c("mt_score"),
                        new = c(paste0(variable, "_score")))
+
   return(dt[])
 }
 
 
 
-#' Create RFM score using kmeans algorithm
+#' Create RFM score using k-means algorithm
 #'
 #' @param dt data.table
 #' @param n_centers number of centers.
@@ -421,6 +438,7 @@ single_kmeans_bins <- function(dt, variable, n_centers = 5, rev = FALSE, seed = 
 #' @export
 #'
 #' @examples rfm_kmean_score(dt, 5, 121)
+#'
 rfm_kmean_score <- function(dt, n_centers = 5, seed = 11) {
   f_dt <- data.table::copy(dt)[, .(customer_id, recency, frequency, monetary)]
 
@@ -447,7 +465,8 @@ rfm_kmean_score <- function(dt, n_centers = 5, seed = 11) {
                        new = c("recency_days", "transaction_count", "amount"))
 
   f_dt[, `:=`(rfm = recency_score * 100 + frequency_score * 10 + monetary_score)]
-  f_dt[, `:=`(rfm_score = recency_score+frequency_score+monetary_score)]
+
+  f_dt[, `:=`(rfm_score = recency_score + frequency_score + monetary_score)]
 
   return(f_dt[])
 }
@@ -492,31 +511,42 @@ rfm_reactable_output <- function(dt) {
     defaultColDef = reactable::colDef(format = reactable::colFormat(separators = TRUE),
                                       na = "–"),
     columns = list(
-      `Customer Id` = reactable::colDef(sortable = FALSE),
+      `Customer Id` = reactable::colDef(
+        sortable = FALSE,
+        format = reactable::colFormat(separators = FALSE)
+      ),
+
       `Total Amount` = reactable::colDef(format = reactable::colFormat(digits = 1)),
-      `Customer Id` = reactable::colDef(align = "center",
-                                        filterable = FALSE,
-                                        format = reactable::colFormat(),
-                                        style = list(background = tbl_header_bg_color,
-                                                     color = tbl_ki_text_color,
-                                                     textSize = tbl_ki_text_size,
-                                                     borderRight = "1px solid #555")),
 
-      RFM = reactable::colDef(align = "center",
-                              headerStyle = list(background = tbl_second_ki_bg_color,
-                                                 borderBottomColor = "#707070"),
-                              style = list(background = tbl_second_ki_bg_color,
-                                           color = tbl_ki_text_color,
-                                           textSize = tbl_ki_text_size)),
+      `Customer Id` = reactable::colDef(
+        align = "center",
+        filterable = FALSE,
+        format = reactable::colFormat(),
+        style = list(background = tbl_header_bg_color,
+                     color = tbl_ki_text_color,
+                     textSize = tbl_ki_text_size,
+                     borderRight = "1px solid #555")
+      ),
 
-      `RFM Score` = reactable::colDef(align = "center",
-                                      headerStyle = list(background = tbl_ki_bg_color,
-                                                         borderBottomColor = "#707070"),
-                                      style = list(background = tbl_ki_bg_color,
-                                                   color = tbl_ki_text_color,
-                                                   textSize = tbl_ki_text_size,
-                                                   fontWeight = "bold",
-                                                   borderBottom = paste("1px solid", tbl_ki_bg_border_color) ))
+      RFM = reactable::colDef(
+        align = "center",
+        headerStyle = list(background = tbl_second_ki_bg_color,
+                           borderBottomColor = "#707070"),
+        style = list(background = tbl_second_ki_bg_color,
+                     color = tbl_ki_text_color,
+                     textSize = tbl_ki_text_size)
+      ),
+
+      `RFM Score` = reactable::colDef(
+        align = "center",
+        headerStyle = list(background = tbl_ki_bg_color,
+                           borderBottomColor = "#707070"),
+        style = list(background = tbl_ki_bg_color,
+                     color = tbl_ki_text_color,
+                     textSize = tbl_ki_text_size,
+                     fontWeight = "bold",
+                     borderBottom = paste("1px solid", tbl_ki_bg_border_color) )
+      )
     ),
     fullWidth = TRUE,
     resizable = TRUE,
