@@ -1,72 +1,3 @@
-distibution_options <- function(sidebar_id, slider_id, radio_id, numeric_id, check_id) {
-  bs4Dash::boxSidebar(
-    startOpen = FALSE,
-    id = sidebar_id,
-    background = box_sidebar_bg,
-    icon = fontawesome::fa_i("fas fa-cogs", verify_fa = FALSE),
-
-    shiny::sliderInput(inputId = slider_id, label = "Zoom",
-                       value = c(0, 1),
-                       min = 0, max = 1, step = 0.5),
-
-    shiny::tags$br(),
-
-    shinyWidgets::prettyRadioButtons(
-      inputId = radio_id,
-      label = "Type of Plot",
-      choices = c("Histogram" = "hist", "Boxplot" = "box"),
-      selected = "hist",
-      status = "info",
-      shape = "curve",
-      thick = TRUE,
-      bigger = TRUE,
-      animation = "pulse"
-    ),
-
-    tags$br(),
-
-    shiny::numericInput(inputId = numeric_id, label = "Number of bins",
-                        value = 30,
-                        min = 20, max = 60, step = 5),
-
-    tags$br(),
-
-    shinyWidgets::prettyCheckbox(
-      inputId = check_id,
-      label = "Log",
-      value = FALSE,
-      status = "info",
-      shape = "curve",
-      thick = TRUE,
-      bigger = TRUE,
-      animation = "pulse"
-      )
-  )
-}
-
-date_plot_option <- function(sidebar_id, radio_id, wd = 50) {
-  bs4Dash::boxSidebar(
-    startOpen = FALSE,
-    id = sidebar_id,
-    width = wd,
-    background = box_sidebar_bg,
-    icon = fontawesome::fa_i("fas fa-cogs", verify_fa = FALSE),
-
-    shinyWidgets::prettyRadioButtons(
-      inputId = radio_id,
-      label = "Type of Plot",
-      choices = c("Bar" = "bar", "Line" = "line", "Area" = "area"),
-      selected = "area",
-      status = "info",
-      shape = "curve",
-      thick = TRUE,
-      bigger = TRUE,
-      animation = "pulse"
-    )
-  )
-}
-
-
 
 #' rfm_description UI Function
 #'
@@ -77,26 +8,39 @@ date_plot_option <- function(sidebar_id, radio_id, wd = 50) {
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-mod_rfm_description_ui <- function(id){
-  ns <- NS(id)
+mod_rfm_description_ui <- function(id) {
+
+  ns <- shiny::NS(id)
 
   shiny::tagList(
     shiny::fluidRow(
-      bs4Dash::valueBoxOutput(outputId = ns("n_customer_vbox"), width = 3),
+      shiny::column(
+        width = 3,
+        shiny::uiOutput(outputId = ns("n_customer_vbox"))
+      ),
 
-      bs4Dash::valueBoxOutput(outputId = ns("n_product_vbox"), width = 3),
+      shiny::column(
+        width = 3,
+        shiny::uiOutput(outputId = ns("n_product_vbox"))
+      ),
 
-      bs4Dash::valueBoxOutput(outputId = ns("total_sales_vbox"), width = 3),
+      shiny::column(
+        width = 3,
+        shiny::uiOutput(outputId = ns("total_sales_vbox"))
+      ),
 
-      bs4Dash::valueBoxOutput(outputId = ns("average_lt_vbox"), width = 3)
+      shiny::column(
+        width = 3,
+        shiny::uiOutput(outputId = ns("average_lt_vbox"))
+      )
     ),
 
     shiny::tags$br(),
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("recency_dis_out")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("recency_dis_out")) |>
+          ui_spinner(),
 
         sidebar = distibution_options(ns("r_sidebar"),
                                       ns("r_slider"),
@@ -104,12 +48,14 @@ mod_rfm_description_ui <- function(id){
                                       ns("r_bins"),
                                       ns("r_log")),
 
-        title = shiny::textOutput(outputId = ns("r_dist_title"))
+        title = shiny::textOutput(outputId = ns("r_dist_title"), inline = TRUE),
+        icon = fontawesome::fa("fas fa-hourglass-end",
+                               fill = "#68228B", height = "1.5em")
       ),
 
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("frequency_dis_out")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("frequency_dis_out")) |>
+          ui_spinner(),
 
         sidebar = distibution_options(ns("f_sidebar"),
                                       ns("f_slider"),
@@ -117,14 +63,16 @@ mod_rfm_description_ui <- function(id){
                                       ns("f_bins"),
                                       ns("f_log")),
 
-        title = shiny::textOutput(outputId = ns("f_dist_title"))
+        title = shiny::textOutput(outputId = ns("f_dist_title"), inline = TRUE),
+        icon = fontawesome::fa("fas fa-rotate",
+                               fill = "#68228B", height = "1.5em")
       )
     ),
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("monetary_dis_out")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("monetary_dis_out")) |>
+          ui_spinner(),
 
         sidebar = distibution_options(ns("m_sidebar"),
                                       ns("m_slider"),
@@ -132,28 +80,34 @@ mod_rfm_description_ui <- function(id){
                                       ns("m_bins"),
                                       ns("m_log")),
 
-        title = shiny::textOutput(outputId = ns("m_dist_title"))
+        title = shiny::textOutput(outputId = ns("m_dist_title"), inline = TRUE),
+        icon = fontawesome::fa("fas fa-money-bills",
+                               fill = "#68228B", height = "1.5em")
       ),
 
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("quarterly_intake")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("quarterly_intake")) |>
+          ui_spinner(),
 
         sidebar = date_plot_option(ns("qtr_sidebar"), ns("qtr_radio")),
 
-        title = "Quarterly Customer Intake"
+        title = "Quarterly Customer Intake",
+        icon = fontawesome::fa("fas fa-calendar-day",
+                               fill = "#68228B", height = "1.5em")
       )
     ),
 
     shiny::fluidRow(
       bs4Dash::box(
-        plotly::plotlyOutput(outputId = ns("monthly_intake")) |>
-          shinycssloaders::withSpinner(type = 4, color = spinner_color),
+        echarts4r::echarts4rOutput(outputId = ns("monthly_intake")) |>
+          ui_spinner(),
 
         sidebar = date_plot_option(ns("mty_sidebar"), ns("mty_radio"), 25),
 
         width = 12,
-        title = "Monthly Customer Intake"
+        title = "Monthly Customer Intake",
+        icon = fontawesome::fa("fas fa-calendar-days",
+                               fill = "#68228B", height = "1.5em")
       )
     )
   )
@@ -170,7 +124,8 @@ mod_rfm_description_server <- function(id){
     id = id,
 
     module = function(input, output, session) {
-      # Load Data ---------------------------------------------------|
+
+      # Load Data ----------------------------------------------------------|
       dash_data <- shiny::reactive({
         data.table::fread(file = "data/a_retail.csv") |>
           clean_date(which = "date")
@@ -186,48 +141,40 @@ mod_rfm_description_server <- function(id){
         lubridate::date(max(dash_data()$date)) + lubridate::days(2)
       })
 
-      # Update value box -----------------------------------------------|
-      output$n_customer_vbox <- bs4Dash::renderValueBox({
-        get_value(dt = dash_data(), what = "n_customers") |>
-          bs4Dash::valueBox(
-            subtitle = "Unique Customers",
-            color = "pink",
-            # icon = shiny::icon("users")
-            icon = fontawesome::fa_i("fas fa-users", verify_fa = FALSE)
-          )
-
-      })
-      output$n_product_vbox <- bs4Dash::renderValueBox({
-        get_value(dt = dash_data(), what = "n_product") |>
-          bs4Dash::valueBox(
-            subtitle = "Unique Products",
-            color = "indigo",
-            # icon = icon("shopping-cart")
-            icon = fontawesome::fa_i("fas fa-shopping-cart", verify_fa = FALSE)
-          )
-      })
-      output$total_sales_vbox <- bs4Dash::renderValueBox({
-        get_value(dt = dash_data(), what = "total_revenue") |>
-          bs4Dash::valueBox(
-            subtitle = "Total Revenue",
-            color = "primary",
-            # icon = shiny::icon("coins")
-            icon = fontawesome::fa_i("fas fa-coins", verify_fa = FALSE)
-          )
-      })
-      output$average_lt_vbox <- bs4Dash::renderValueBox({
-        get_value(rfm_dt = dash_rfm(), what = "average_lt") |>
-          bs4Dash::valueBox(
-            subtitle = "Average Customer Life Time",
-            color = "lime",
-            # icon = shiny::icon("history")
-            icon = fontawesome::fa_i("fas fa-history", verify_fa = FALSE)
-          )
+      # Update value box ---------------------------------------------------|
+      output$n_customer_vbox <- shiny::renderUI({
+        value_card(
+          value = get_value(dt = dash_data(), what = "n_customers"),
+          label = "Unique Customers",
+          icon = "users"
+        )
       })
 
+      output$n_product_vbox <- shiny::renderUI({
+        value_card(
+          value = get_value(dt = dash_data(), what = "n_product"),
+          label = "Unique Products",
+          icon = "cart-shopping"
+        )
+      })
 
+      output$total_sales_vbox <- shiny::renderUI({
+        value_card(
+          value = get_value(dt = dash_data(), what = "total_revenue"),
+          label = "Total Revenue",
+          icon = "coins"
+        )
+      })
 
-      # Distribution Plots --------------------------------------------|
+      output$average_lt_vbox <- shiny::renderUI({
+        value_card(
+          value = get_value(rfm_dt = dash_rfm(), what = "average_lt"),
+          label = "Average Customer Life Time",
+          icon = "hourglass-half"
+        )
+      })
+
+      # Distribution Plots ------------------------------------------------|
       # Recency -----------------------------------------------------|
       shiny::observe({
         if (input$r_log) {
@@ -243,22 +190,22 @@ mod_rfm_description_server <- function(id){
                                  min = 0, max = zoom$max, step = zoom$stp)
       })
 
-      output$recency_dis_out <- plotly::renderPlotly({
+      output$recency_dis_out <- echarts4r::renderEcharts4r({
         shiny::req(dash_rfm(), input$r_radio)
 
-        if (input$r_radio == "hist") {
+        if (input$r_radio %in% c("hist", "dens")) {
           rfm_distribution_plot(dt = dash_rfm(),
                                 var = "recency",
+                                type = input$r_radio,
                                 zoom = input$r_slider,
                                 bins = input$r_bins,
-                                log_var = input$r_log,
-                                interactive = TRUE)
+                                log_var = input$r_log)
+
         } else if (input$r_radio == "box") {
           rfm_boxplot(dt = dash_rfm(),
                       var = "recency",
                       zoom = input$r_slider,
-                      log_var = input$r_log,
-                      interactive = TRUE)
+                      log_var = input$r_log)
         }
       })
 
@@ -285,22 +232,22 @@ mod_rfm_description_server <- function(id){
                                  min = 0, max = zoom$max, step = zoom$stp)
       })
 
-      output$frequency_dis_out <- plotly::renderPlotly({
+      output$frequency_dis_out <- echarts4r::renderEcharts4r({
         shiny::req(dash_rfm(), input$f_radio)
 
-        if (input$f_radio == "hist") {
+        if (input$f_radio %in% c("hist", "dens")) {
           rfm_distribution_plot(dt = dash_rfm(),
                                 var = "frequency",
+                                type = input$f_radio,
                                 zoom = input$f_slider,
                                 bins = input$f_bins,
-                                log_var = input$f_log,
-                                interactive = TRUE)
+                                log_var = input$f_log)
+
         } else if (input$f_radio == "box") {
           rfm_boxplot(dt = dash_rfm(),
                       var = "frequency",
                       zoom = input$f_slider,
-                      log_var = input$f_log,
-                      interactive = TRUE)
+                      log_var = input$f_log)
         }
       })
 
@@ -328,24 +275,23 @@ mod_rfm_description_server <- function(id){
                                  min = 0, max = zoom$max, step = zoom$stp)
       })
 
-      output$monetary_dis_out <- plotly::renderPlotly({
+      output$monetary_dis_out <- echarts4r::renderEcharts4r({
         shiny::req(dash_rfm(), input$m_radio)
 
-        if (input$m_radio == "hist") {
+        if (input$m_radio %in% c("hist", "dens")) {
           rfm_distribution_plot(dt = dash_rfm(),
                                 var = "monetary",
+                                type = input$m_radio,
                                 zoom = input$m_slider,
                                 bins = input$m_bins,
-                                log_var = input$m_log,
-                                interactive = TRUE)
+                                log_var = input$m_log)
+
         } else if (input$m_radio == "box") {
           rfm_boxplot(dt = dash_rfm(),
                       var = "monetary",
                       zoom = input$m_slider,
-                      log_var = input$m_log,
-                      interactive = TRUE)
+                      log_var = input$m_log)
         }
-
       })
 
       output$m_dist_title <- shiny::renderText({
@@ -362,20 +308,19 @@ mod_rfm_description_server <- function(id){
       })
 
       # quarterly ----------------------------------------------------|
-      output$quarterly_intake <- plotly::renderPlotly({
+      output$quarterly_intake <- echarts4r::renderEcharts4r({
         shiny::req(date_dt())
+
         quarterly_intake(dt = date_dt(),
-                         geom = input$qtr_radio,
-                         interactive = TRUE)
+                         geom = input$qtr_radio)
       })
 
       # Monthly ------------------------------------------------------|
-      output$monthly_intake <- plotly::renderPlotly({
+      output$monthly_intake <- echarts4r::renderEcharts4r({
         shiny::req(date_dt())
 
         monthly_intake(dt = date_dt(),
-                       geom = input$mty_radio,
-                       interactive = TRUE)
+                       geom = input$mty_radio)
       })
 
       # Push Data to RFM analysis --------------------------------------|
@@ -389,9 +334,3 @@ mod_rfm_description_server <- function(id){
     }
   )
 }
-
-## To be copied in the UI
-# mod_rfm_description_ui("rfm_description_1")
-
-## To be copied in the server
-# mod_rfm_description_server("rfm_description_1")
