@@ -1,4 +1,4 @@
-app_sideBar_theme <- fresh::use_theme(
+app_sidebar_theme <- fresh::use_theme(
   fresh::create_theme(
     fresh::bs4dash_sidebar_light(
       bg = "#9400D3",
@@ -185,7 +185,8 @@ golem_add_external_resources <- function() {
     # Add here other external resources
     # for example, you can add shinyalert::useShinyalert()
     shinyjs::useShinyjs(),
+    waiter::useWaiter(),
     shinyWidgets::chooseSliderSkin("Flat", "#00FFFF"),
-    app_sideBar_theme
+    app_sidebar_theme
   )
 }
