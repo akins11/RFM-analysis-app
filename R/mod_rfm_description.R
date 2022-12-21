@@ -13,6 +13,10 @@ mod_rfm_description_ui <- function(id) {
   ns <- shiny::NS(id)
 
   shiny::tagList(
+    waiter::waiterPreloader(html = waiter::spin_ripple(),
+                            color = "#9932CC",
+                            fadeout = TRUE),
+
     shiny::fluidRow(
       shiny::column(
         width = 3,
