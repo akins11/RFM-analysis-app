@@ -7,24 +7,45 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-mod_segment_assignment_ui <- function(id){
-  ns <- NS(id)
+mod_segment_assignment_ui <- function(id) {
+  ns <- shiny::NS(id)
 
   shiny::tagList(
     shiny::fluidRow(
-      align = "center",
-
       shiny::column(
-        width = 4,
-        offset = 4,
+        width = 6,
+        offset = 3,
 
         shinyWidgets::panel(
-          shiny::numericInput(
-            inputId = ns("n_segment"),
-            label = tags$h5("Number of Segment"),
-            value = 5, min = 2, max = 10,
-            width = "300px"
-            ) # Change to 4
+          shiny::fluidRow(
+            shiny::column(
+              width = 6,
+
+              shinyWidgets::prettyRadioButtons(
+                inputId = ns("use_ds"),
+                label = "",
+                choices = c("Use Default" = "use_default",
+                            "New Segments" = "new_segment"),
+                status = "info",
+                shape = "curve",
+                animation = "pulse",
+                bigger = TRUE,
+                thick = TRUE
+              )
+            ),
+
+            shiny::column(
+              width = 6,
+              align = "center",
+
+              shiny::numericInput(
+                inputId = ns("n_segment"),
+                label = shiny::h6("Number of Segment"),
+                value = 5, min = 2, max = 10,
+                width = "300px"
+              ) # Change to 4
+            )
+          )
         )
       )
     ),
@@ -114,22 +135,35 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
 
       n_seg <- shiny::reactive(as.integer(input$n_segment))
 
+      use_default <- shiny::reactive({
+        if (input$use_ds == "use_default") TRUE else FALSE
+      })
+
       range_value <- shiny::reactive({
         req(rfm_data())
 
         rfm_min_max(rfm_data())
       })
 
+
       output$segment_name_ui <- shiny::renderUI({
         shiny::req(input$n_segment)
 
         lapply(
           seq_len(n_seg()), function(.x) {
+
+            if (use_default()) {
+              val <- segment_names_val[.x]
+
+            } else {
+              val <- ""
+            }
+
             shiny::tagList(
               shiny::textInput(
                 inputId = session$ns(paste0("segment_", .x)),
                 label = "",
-                value = segment_names_val[.x],     ## Remove
+                value = val,
                 placeholder = paste("Segment", .x)
                 ),
               shiny::tags$br()
@@ -137,18 +171,26 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
           }
         )
       })
+
       output$recency_bins_ui <- shiny::renderUI({
         shiny::req(input$n_segment)
 
         lapply(
           seq_len(n_seg()), function(.x) {
+
+            if (use_default()) {
+              r_val <- recency_val[[.x]]
+
+            } else {
+              r_val <- range_value()[["R"]][1:2]
+            }
+
             shiny::tagList(
               # chooseSliderSkin("Round"),
               shiny::sliderInput(
                 inputId = session$ns(paste0("recency_", .x)),
                 label = "",
-                # value = range_value()[["R"]][1:2],
-                value = recency_val[[.x]],
+                value = r_val,
                 min  = range_value()[["R"]][1],
                 max  = range_value()[["R"]][2],
                 step = 1
@@ -157,18 +199,26 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
           }
         )
       })
+
       output$frequency_bins_ui <- shiny::renderUI({
         shiny::req(input$n_segment)
 
         lapply(
           seq_len(n_seg()), function(.x) {
+
+            if (use_default()) {
+              f_val <- f_m_val[[.x]]
+
+            } else {
+              f_val <- range_value()[["F"]][1:2]
+            }
+
             shiny::tagList(
               # chooseSliderSkin("Round"),
               shiny::sliderInput(
                 inputId = session$ns(paste0("frequency_", .x)),
                 label = "",
-                # value = range_value()[["F"]][1:2],
-                value = f_m_val[[.x]],
+                value = f_val,
                 min  = range_value()[["F"]][1],
                 max  = range_value()[["F"]][2],
                 step = 1
@@ -177,18 +227,26 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
           }
         )
       })
+
       output$monetary_bins_ui <- shiny::renderUI({
         shiny::req(input$n_segment)
 
         lapply(
           seq_len(n_seg()), function(.x) {
+
+            if (use_default()) {
+              m_val <- f_m_val[[.x]]
+
+            } else {
+              m_val <- range_value()[["M"]][1:2]
+            }
+
             shiny::tagList(
               # chooseSliderSkin("Round"),
               shiny::sliderInput(
                 inputId = session$ns(paste0("monetary_", .x)),
                 label = "",
-                # value = range_value()[["M"]][1:2],
-                value = f_m_val[[.x]],
+                value = m_val,
                 min  = range_value()[["M"]][1],
                 max  = range_value()[["M"]][2],
                 step = 1
@@ -212,6 +270,7 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
         list(lower = ext_bins(collect_val[[1]], n_seg(), 1),
              upper = ext_bins(collect_val[[1]], n_seg(), 2))
       })
+
       frequency <- shiny::reactive({
         shiny::req(input[[paste0("frequency_", n_seg())]])
         collect_val <- list(
@@ -220,6 +279,7 @@ mod_segment_assignment_server <- function(id, rfm_data, parent_session) {
         list(lower = ext_bins(collect_val[[1]], n_seg(), 1),
              upper = ext_bins(collect_val[[1]], n_seg(), 2))
       })
+
       monetary <- shiny::reactive({
         shiny::req(input[[paste0("monetary_", n_seg())]])
         collect_val <- list(
